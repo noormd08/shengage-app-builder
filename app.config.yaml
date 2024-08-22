@@ -1,0 +1,21 @@
+application:
+  actions: actions
+  runtimeManifest:
+    packages:
+      shengage:
+        license: Apache-2.0
+        actions:
+          getComments:
+            function: actions/getComments/index.js
+            web: 'yes'
+            runtime: nodejs:16
+            annotations:
+              require-adobe-auth: false
+              final: true
+          postComment:
+            function: actions/postComment/index.js
+            web: 'yes'
+            runtime: nodejs:16
+            annotations:
+              require-adobe-auth: false
+              final: true
