@@ -5,10 +5,30 @@ application:
       shengage:
         license: Apache-2.0
         actions:
+          getReactions:
+            function: actions/getReactions/index.js
+            web: 'yes'
+            runtime: nodejs:16
+            inputs:
+              LOG_LEVEL: info
+            annotations:
+              require-adobe-auth: false
+              final: true
+          postReaction:
+            function: actions/postReaction/index.js
+            web: 'yes'
+            runtime: nodejs:16
+            inputs:
+              LOG_LEVEL: info
+            annotations:
+              require-adobe-auth: false
+              final: true
           getComments:
             function: actions/getComments/index.js
             web: 'yes'
             runtime: nodejs:16
+            inputs:
+              LOG_LEVEL: info
             annotations:
               require-adobe-auth: false
               final: true
@@ -16,6 +36,8 @@ application:
             function: actions/postComment/index.js
             web: 'yes'
             runtime: nodejs:16
+            inputs:
+              LOG_LEVEL: info
             annotations:
               require-adobe-auth: false
               final: true
