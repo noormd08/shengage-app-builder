@@ -23,8 +23,8 @@ function updateComment(data, newComment) {
   function findAndUpdate(comments, newComment) {
     for (let comment of comments) {
       if (comment.commentId === newComment.commentId) {
-        // Exclude 'replies' from newComment to preserve existing replies
-        const { replies, ...updatedFields } = newComment;
+        // Exclude 'replies' and likedBy from newComment to preserve existing replies
+        const { replies, likedBy, ...updatedFields } = newComment;
         Object.assign(comment, updatedFields);
         return true;
       }
