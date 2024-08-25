@@ -2,27 +2,95 @@ const { Core } = require('@adobe/aio-sdk');
 const filesLib = require('@adobe/aio-lib-files');
 
 /**
- * Updates an existing comment or adds a new comment to the data.
- *
- * @param {Object[]} data - The array of comment data.
- * @param {Object} newData - The new comment data to update or add.
- * @param {string} newData.commentId - The ID of the comment.
- * @param {string} newData.commentText - The text of the comment.
- * @param {string[]} newData.likedBy - List of users who liked the comment.
- * @param {string} newData.postedBy - The ID of the user who posted the comment.
- * @param {string} newData.postedDate - The date when the comment was posted.
- * @param {Object[]} newData.replies - List of replies to the comment.
- * @returns {Object[]} The updated array of comment data.
+ * Updates or adds a new comment in the data structure based on the provided commentId.
+ * 
+ * @param {Array} data - The array of comments representing the hierarchical structure.
+ * @param {Object} newComment - The new comment data to be added or used for updating.
+ * @param {string} newComment.commentId - The ID of the comment to be updated or added.
+ * @param {string} newComment.commentText - The text of the comment.
+ * 
+ * @returns {Array} The updated data structure with the comment added or replaced.
  */
-function updateComment(data, newData) {
-  const { commentId } = newData;
-  const commentIndex = data.findIndex(item => item.commentId === commentId);
+function updateComment(data, newComment) {
+  /**
+   * Recursively searches for a comment with the given commentId and updates it.
+   * Excludes the 'replies' property to preserve existing nested comments.
+   * 
+   * @param {Array} comments - The current level of comments being searched.
+   * @param {Object} newComment - The new comment data to update.
+   * @returns {boolean} True if the comment was found and updated; otherwise, false.
+   */
+  function findAndUpdate(comments, newComment) {
+    for (let comment of comments) {
+      if (comment.commentId === newComment.commentId) {
+        // Exclude 'replies' from newComment to preserve existing replies
+        const { replies, ...updatedFields } = newComment;
+        Object.assign(comment, updatedFields);
+        return true;
+      }
 
-  if (commentIndex !== -1) {
-    data[commentIndex] = { ...data[commentIndex], ...newData };
-  } else {
-    data.push(newData);
+      if (comment.replies && findAndUpdate(comment.replies, newComment)) {
+        return true;
+      }
+    }
+    return false;
   }
+
+  /**
+   * Recursively searches for a parent comment with the given parentId.
+   * 
+   * @param {Array} comments - The current level of comments being searched.
+   * @param {string} parentId - The ID of the parent comment.
+   * @returns {Object|null} The parent comment object if found; otherwise, null.
+   */
+  function findParent(comments, parentId) {
+    for (let comment of comments) {
+      if (comment.commentId === parentId) {
+        return comment;
+      }
+
+      if (comment.replies) {
+        const parent = findParent(comment.replies, parentId);
+        if (parent) {
+          return parent;
+        }
+      }
+    }
+    return null;
+  }
+
+  // Attempt to find and update the existing comment
+  const updated = findAndUpdate(data, newComment);
+
+  if (!updated) {
+    // Comment not found; determine where to add it
+    const lastDotIndex = newComment.commentId.lastIndexOf('.');
+    let parentId = '';
+
+    if (lastDotIndex !== -1) {
+      parentId = newComment.commentId.substring(0, lastDotIndex);
+    }
+
+    if (parentId === '') {
+      // No parentId implies a top-level comment
+      data.push(newComment);
+    } else {
+      // Find the parent comment to add the new comment as a reply
+      const parentComment = findParent(data, parentId);
+
+      if (parentComment) {
+        if (!parentComment.replies) {
+          parentComment.replies = [];
+        }
+        parentComment.replies.push(newComment);
+      } else {
+        // Parent not found; handle as needed (e.g., add as top-level or throw an error)
+        console.warn(`Parent comment with ID '${parentId}' not found. Adding as top-level comment.`);
+        data.push(newComment);
+      }
+    }
+  }
+
   return data;
 }
 

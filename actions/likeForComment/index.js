@@ -1,6 +1,21 @@
 const { Core } = require('@adobe/aio-sdk');
 const filesLib = require('@adobe/aio-lib-files');
 
+function findCommentById(comments, commentId) {
+  for (let comment of comments) {
+      if (comment.commentId === commentId) {
+          return comment;
+      }
+      if (comment.replies && comment.replies.length > 0) {
+          const result = findCommentById(comment.replies, commentId);
+          if (result) {
+              return result;
+          }
+      }
+  }
+  return null; // Return null if commentId is not found
+}
+
 /**
  * Updates the 'likedBy' array of a specific comment in the data.
  *
@@ -11,27 +26,24 @@ const filesLib = require('@adobe/aio-lib-files');
  * @returns {Object[]} The updated array of comments.
  */
 function updateComment(data, userId, commentId, userHasLiked = false) {
-  const commentIndex = data.findIndex(item => item.commentId === commentId);
+  const commentObj = findCommentById(data, commentId);
 
-  if (commentIndex === -1) {
-    return data; // Comment not found, return the original data.
+  if (commentObj) {
+      if (userHasLiked) {
+          if (!commentObj.likedBy) {
+              commentObj.likedBy = [];
+          }
+          if (!commentObj.likedBy.includes(userId)) {
+              commentObj.likedBy.push(userId);
+          }
+      } else {
+          const userIndex = commentObj.likedBy?.indexOf(userId);
+          if (userIndex !== -1) {
+              commentObj.likedBy.splice(userIndex, 1);
+          }
+      }
   }
 
-  const comment = data[commentIndex];
-  const { likedBy } = comment;
-
-  if (userHasLiked) {
-    if (!likedBy.includes(userId)) {
-      likedBy.push(userId);
-    }
-  } else {
-    const index = likedBy.indexOf(userId);
-    if (index !== -1) {
-      likedBy.splice(index, 1);
-    }
-  }
-
-  data[commentIndex] = { ...comment, likedBy };
   return data;
 }
 
